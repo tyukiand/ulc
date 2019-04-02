@@ -1,0 +1,127 @@
+// TYPE: "List[Boolean]"
+// EXPECTED: "List(true, false, true)"
+
+// CROP-HEADER
+// SKI-combinators.
+def S x y z = x z(y z);
+def K x y = x;
+def I x = x;
+
+// Basic boolean operations
+def true a b = a;
+def false a b = b;
+def or a b = a true b;
+def and a b = a b false;
+def not b = b false true;
+def if cond t else e = cond t e;
+
+// pair constructor together with deconstructors.
+def pair x y t = t x y;
+def fst pair = pair true;
+def snd pair = pair false;
+
+// natural numbers in Church encoding
+// def zero f x = x;
+// def succ n f x = f(n f x);
+// def isZero n = n (\x.false) true;
+// def pred n f x = (
+//   def helper valueMarker = (
+//     val value = fst valueMarker;
+//     val marker = snd valueMarker;
+//     val newValue = if (marker) { f(value) } else { value };
+//     pair newValue true
+//   );
+//   val wrappedResult = n helper (pair x false);
+//   fst wrappedResult
+// );
+// def add a b = a succ b;
+// def sub fromWhat whatToSubtract = whatToSubtract pred fromWhat;
+// def mul a b = a (add b) zero;
+
+// Y-combinator, manually
+// def yHalf y f = f (y y f);
+// val Y = yHalf yHalf;
+// val Y = \f.(\x.f(x x))(\z.f(z z));
+
+// natural numbers in list encoding
+val zero = pair true true;
+def succ n = pair false n;
+val one = succ(zero);
+def isZero n = fst n;
+def pred n = snd n;
+
+// applies function `f` to `x` `n` times,
+// desugared into a term with `Y`-combinator (it's recursive!)
+def repeat n f x = if (isZero(n)) { x } else { 
+  f(repeat (pred n) f x) 
+};
+
+// Arithmetic operations in terms of `repeat`
+def add a b = repeat a succ b;
+def sub a b = repeat b pred a;
+def mul a b = repeat a (add b) zero; 
+def square  x = mul x x;
+def pow a b = repeat b (mul a) one;
+
+// non-trivial arithmetic operations that require recursion
+def factorial n = if (isZero(n)) { one } else { 
+  mul n (factorial(pred(n))) 
+};
+
+// simple demo of mutually recursive functions
+mutuallyRecursive {
+  def odd n = if (isZero(n)) { false } else { even(pred(n)) } ,
+  def even n = if (isZero(n)) { true } else { odd(pred(n)) }
+};
+
+// more complex demo of mutually recursive functions:
+// Hofstadter sequences
+mutuallyRecursive {
+  def female n = if (isZero(n)) { 1 } else { sub n (male(female(pred(n)))) },
+  def male n = if (isZero(n)) { 0 } else { sub n (female(male(pred(n)))) }
+};
+
+// equality check for integers 
+def isEqual a b = if (and (isZero(a)) (isZero(b))) {
+  true 
+} else (if (or (isZero(a)) (isZero(b))) {
+  false 
+} else {
+  isEqual (pred(a)) (pred(b))
+});
+
+// List data structure
+def listStructure empty h t = pair empty (pair h t);
+def nil = listStructure true I I;
+def cons h t = listStructure false h t;
+def isEmpty a = fst a;
+def head a = fst(snd a);
+def tail a = snd(snd a);
+
+// Operations on lists
+def foldLeft list start f = if (isEmpty(list)) { 
+  start 
+} else {
+  foldLeft (tail(list)) (f start (head(list))) f
+};
+
+def map list f = if (isEmpty(list)) {
+  nil
+} else {
+  cons (f(head(list))) (map (tail(list)) f)
+};
+
+// Generates list of integers {from, ..., to}
+// works only if `from <= to`
+def range from to = if (isEqual from to) { 
+  cons to nil 
+} else { 
+  cons from (range (succ(from)) to) 
+};
+
+// This is the term that is evaluated, (eventually interpreted) and printed 
+(
+  // generate range of integers, test whether they are even or not
+  map (range 0 2) even
+)
+

@@ -1,0 +1,9 @@
+// testing "the paradoxical" term: this example crashes 
+// with stack overflow if the normalization order is
+// wrong in the interpreter.
+def w x = x x;
+val LoopForever = w w;
+def false x y = y;
+val I = \x.x;
+
+false LoopForever I
